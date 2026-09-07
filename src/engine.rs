@@ -292,7 +292,18 @@ fn inject_worker(rx: Receiver<InjectCmd>, expanding: Arc<AtomicBool>) {
     for cmd in rx {
         let InjectCmd::Text { count, text } = cmd;
         remove_chars(&mut enigo, count);
-        let _ = enigo.text(&text);
+        // enigo::text() 在遇到 '\n' 时会提前 return，且丢弃已累积但尚未
+        // 通过 SendInput 发送出去的字符，导致多行展开只剩下一个回车。
+        // 这里按行拆分、逐行注入，行间以 Enter 连接，避免触发该行为。
+        let mut lines = text.split('\n').peekable();
+        while let Some(line) = lines.next() {
+            if !line.is_empty() {
+                let _ = enigo.text(line);
+            }
+            if lines.peek().is_some() {
+                let _ = enigo.key(Key::Return, Direction::Click);
+            }
+        }
         thread::sleep(Duration::from_millis(60));
         expanding.store(false, Ordering::SeqCst);
     }
