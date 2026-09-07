@@ -54,10 +54,17 @@ jobs:
         with:
           path: artifacts
 
-      - name: List artifacts
-        run: find artifacts -type f -printf '%p\n'
+      - name: Rename binaries with unique names
+        run: |
+          mkdir -p dist
+          for dir in artifacts/*/; do
+            name=$(basename "$dir")
+            bin=$(find "$dir" -type f | head -n 1)
+            cp "$bin" "dist/$name"
+          done
+          ls -la dist
 
       - name: Create / update release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*
+          files: dist/*
