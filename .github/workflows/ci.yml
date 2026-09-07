@@ -30,3 +30,9 @@ jobs:
 
       - name: Test
         run: cargo test --release --locked
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: snippy-${{ matrix.os }}
+          path: target/release/snippy${{ runner.os == 'Windows' && '.exe' || '' }}
